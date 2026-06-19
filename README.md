@@ -21,7 +21,12 @@ Playdate, or run it in the Playdate Simulator.
 Robbo was created by Polish developer **Janusz Pelc** and originally released for
 8-bit Atari computers in 1989 (published by LK Avalon). In 1993 it was rebuilt
 for MS-DOS by **xLand Games** and distributed by **Epic MegaGames** (now Epic
-Games). This port is reconstructed from that DOS edition's C source.
+Games) under the title **Adventures of Robbo**. This port is reconstructed from
+that DOS edition's C source.
+
+You can play the original DOS game
+[online in your browser](https://www.playdosgames.com/online/adventures-of-robbo/),
+and it's also available on [GOG.com](https://www.gog.com/en/game/adventures_of_robbo).
 
 Robbo is a grid-based puzzle game in the spirit of *Boulder Dash* and *Supaplex*,
 but built around shooting and exploration rather than gravity. Across 60 planets
@@ -127,17 +132,15 @@ original C source live in a separate development repository.
 - **Game data, graphics, and sound** — the sprite/art tables in `source/images/`,
   the baked cave definitions in `source/caves.lua`, and the effect and music
   samples in `source/sounds/` and `source/music/` — are converted from the
-  original **Robbo** (1993) and remain the property of their original authors;
-  they are included here for this non-commercial fan port under the terms of the
-  original game's source release.
+  original **Robbo** (1993) and are licensed under
+  **[CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)**.
 
 ## Acknowledgments
 
 - **Robbo** and its author **Janusz Pelc**, for the original 1989 Atari game and
   its design.
-- **xLand Games** and **Epic MegaGames**, for the 1993 MS-DOS edition, and for
-  the later release of its source — used here as the reference implementation for
-  the mechanics, timing, and data formats.
+- **xLand Games** and **Epic MegaGames**, for the 1993 MS-DOS edition — used here
+  as the reference implementation for the mechanics, timing, and data formats.
 - Playdate port by [Claude Code](https://claude.com/claude-code) under the
   supervision of [Maciej Miąsik](https://github.com/tosiabunio)
   ([miasik.net](https://miasik.net/)).

@@ -26,6 +26,6 @@ NOTE ON GAME ASSETS
 
 This MIT license applies to the Playdate port's source code (source/*.lua).
 The game's graphics, cave data, sound effects, and music are converted from the
-original Robbo (1993) and remain the property of their original authors
-(Janusz Pelc / xLand Games / Epic MegaGames). They are included here for a
-non-commercial fan port and are not covered by the MIT license above.
+original Robbo (1993) and are licensed under Creative Commons Attribution-
+ShareAlike 4.0 (CC BY-SA 4.0): https://creativecommons.org/licenses/by-sa/4.0/
+They are not covered by the MIT license above.
