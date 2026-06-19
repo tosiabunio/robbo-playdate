@@ -1,0 +1,11 @@
+# Playdate build output
+*.pdx/
+*.pdx
+Robbo.pdx/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+.vscode/

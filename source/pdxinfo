@@ -1,0 +1,7 @@
+name=Robbo
+author=miasik.net
+description=A port of the 1993 DOS game Robbo (xland) to Playdate.
+bundleID=net.miasik.robbo
+version=0.1
+buildNumber=1
+imagePath=
