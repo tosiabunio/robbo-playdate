@@ -256,17 +256,10 @@ function Renderer:drawStatus(game)
     local row1 = STATUS_Y + 6
     local row2 = STATUS_Y + 34
 
-    -- Subtle separators (white, 1px): a top rule, a rule between the two rows, and
-    -- two short dividers between the row-1 readouts -- an LCD feel without a bezel.
-    gfx.setColor(gfx.kColorWhite)
-    gfx.fillRect(x0, STATUS_Y + 1, PLAYFIELD_W, 1)
-    gfx.fillRect(x0, STATUS_Y + 28, PLAYFIELD_W, 1)
-    gfx.fillRect(x0 + 86,  STATUS_Y + 4, 1, 22)
-    gfx.fillRect(x0 + 172, STATUS_Y + 4, 1, 22)
-
-    -- Glyphs are a white mask on transparent; draw them as WHITE ink explicitly so
-    -- they read white-on-black regardless of the source image's stored polarity.
-    gfx.setImageDrawMode(gfx.kDrawModeFillWhite)
+    -- Glyph cells are fully opaque (white ink on black) -- see build_info_assets.py:
+    -- a transparent mask got inverted by pdc, rendering black-on-white, so we use no
+    -- transparency and plain kDrawModeCopy. The black cell backgrounds are invisible
+    -- on the black panel; draw the white separators AFTER so the cells don't cover them.
 
     -- Row 1: screws / ammo (category icon + 2 digits), cave (icon + group + sub).
     self:_glyph(INFO.iconScrews, x0 + 4, row1)
@@ -284,6 +277,13 @@ function Renderer:drawStatus(game)
     self:_pips(game.lives, HUD_MAX_LIVES, INFO.lifeFull, x0 + 4, row2)
     self:_pips(game.keys, 4, INFO.keyFull, x0 + 188, row2)
 
-    gfx.setImageDrawMode(gfx.kDrawModeCopy)   -- reset
+    -- Subtle separators (white, 1px): top rule, a rule between the rows, and two
+    -- short dividers between the row-1 readouts -- an LCD feel without a bezel.
+    gfx.setColor(gfx.kColorWhite)
+    gfx.fillRect(x0, STATUS_Y + 1, PLAYFIELD_W, 1)
+    gfx.fillRect(x0, STATUS_Y + 28, PLAYFIELD_W, 1)
+    gfx.fillRect(x0 + 86,  STATUS_Y + 4, 1, 22)
+    gfx.fillRect(x0 + 172, STATUS_Y + 4, 1, 22)
+
     gfx.setColor(gfx.kColorBlack)             -- reset
 end
