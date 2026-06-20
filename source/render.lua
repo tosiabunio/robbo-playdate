@@ -11,7 +11,8 @@
 
 import "CoreLibs/graphics"
 import "constants"
-import "defs"     -- DEFS[obj] = base bank-tile index (from load_defs)
+import "defs"        -- DEFS[obj] = base bank-tile index (from load_defs)
+import "info_defs"   -- INFO slot constants + glyph widths (HUD imagetable)
 
 local gfx <const> = playdate.graphics
 
@@ -37,7 +38,7 @@ function Renderer:init()
     self.robo_step = 0                    -- Robbo walk-cycle phase (PLAY.CPP robo_step)
     self.group = "a"                      -- cave group letter for WALL/BOX art
     self.tiles = gfx.imagetable.new("images/bank")   -- bank-table-16-16.png
-    self.font = nil                       -- set lazily in drawStatus
+    self.info  = gfx.imagetable.new("images/info-table-16-19")  -- HUD glyphs (display_info)
 end
 
 -- Cave group letter for per-level themed WALL/BOX art (update_defs() in DOS):
@@ -211,20 +212,73 @@ function Renderer:draw(cave)
     gfx.clearClipRect()
 end
 
--- drawStatus(game): text-only HUD in the bottom panel (STATUS_H=64). Full
--- icon-based display_info() port is a later polish stage; for now, text lines.
+-- HUD layout (display_info() port). The original is an amber 7-segment LCD; here
+-- it's white 1-bit glyphs (info-table) on the black status panel, with subtle
+-- separators instead of the DOS bezel. Centred over the 256px playfield column
+-- (x PLAYFIELD_X..PLAYFIELD_X+PLAYFIELD_W) inside the wider 400px panel.
+--   Row 1: [screw][NN]  |  [ammo][NN]  |  cave = group-letter + sub-number
+--   Row 2: life pips (≤10, full/empty)        key pips (4, full/empty)
+local HUD_DIGIT_PITCH <const> = 10      -- monospace 7-seg readouts (glyphs are 8px)
+local HUD_PIP_PITCH   <const> = 16      -- life/key pips (icons are ~12-16px wide)
+local HUD_MAX_LIVES   <const> = 10      -- DOS display_info() caps the pip row at 10
+
+-- LCD-glyph blit: slot s -> info imagetable image (s+1), 1-based.
+function Renderer:_glyph(slot, x, y)
+    local img = self.info:getImage(slot + 1)
+    if img then img:draw(x, y) end
+end
+
+-- Zero-padded 2-digit 7-seg readout (screws / ammo), monospace.
+function Renderer:_num2(value, x, y)
+    value = math.max(0, math.min(99, value))
+    self:_glyph(INFO.digit0 + (value // 10), x, y)
+    self:_glyph(INFO.digit0 + (value % 10), x + HUD_DIGIT_PITCH, y)
+end
+
+-- A row of `count` filled pips (lives / keys). The DOS LCD also lit "empty" slots,
+-- but an empty slot is a SOLID block -- heavier than the full icon on our black
+-- panel -- so we draw filled icons only, capped at `cap`.
+function Renderer:_pips(count, cap, slot, x, y)
+    for i = 1, math.min(count, cap) do
+        self:_glyph(slot, x + (i - 1) * HUD_PIP_PITCH, y)
+    end
+end
+
+-- drawStatus(game): the LCD-style icon HUD in the bottom panel (STATUS_H=64).
+-- Port of display_info(): screws/ammo as category-icon + 2-digit 7-seg readouts,
+-- cave as group letter + sub-number, lives/keys as pip icons. White 1-bit glyphs
+-- on black, with subtle separators in place of the DOS bezel.
 function Renderer:drawStatus(game)
     gfx.setColor(gfx.kColorBlack)
     gfx.fillRect(0, STATUS_Y, SCREEN_W, STATUS_H)
-    if not self.font then self.font = gfx.getFont() end
-    gfx.setFont(self.font)
-    gfx.setImageDrawMode(gfx.kDrawModeFillWhite)
 
-    local line1 = string.format("CAVE %02d   SCREWS %02d   AMMO %02d",
-                                game.caveNum, game.screws, game.ammo)
-    local line2 = string.format("KEYS %d   LIVES %d", game.keys, game.lives)
-    gfx.drawText(line1, PLAYFIELD_X, STATUS_Y + 10)
-    gfx.drawText(line2, PLAYFIELD_X, STATUS_Y + 30)
+    local x0 = PLAYFIELD_X                       -- 72; HUD column = x0..x0+256
+    local row1 = STATUS_Y + 6
+    local row2 = STATUS_Y + 34
 
-    gfx.setImageDrawMode(gfx.kDrawModeCopy)   -- reset
+    -- Subtle separators (white, 1px): a top rule, a rule between the two rows, and
+    -- two short dividers between the row-1 readouts -- an LCD feel without a bezel.
+    gfx.setColor(gfx.kColorWhite)
+    gfx.fillRect(x0, STATUS_Y + 1, PLAYFIELD_W, 1)
+    gfx.fillRect(x0, STATUS_Y + 28, PLAYFIELD_W, 1)
+    gfx.fillRect(x0 + 86,  STATUS_Y + 4, 1, 22)
+    gfx.fillRect(x0 + 172, STATUS_Y + 4, 1, 22)
+
+    -- Row 1: screws / ammo (category icon + 2 digits), cave (icon + group + sub).
+    self:_glyph(INFO.iconScrews, x0 + 4, row1)
+    self:_num2(game.screws, x0 + 22, row1)
+    self:_glyph(INFO.iconAmmo, x0 + 90, row1)
+    self:_num2(game.ammo, x0 + 108, row1)
+
+    local group = (game.caveNum - 1) // 4        -- 0..14 -> A..O
+    local sub   = (game.caveNum - 1) % 4         -- 0..3  -> sub 1..4
+    self:_glyph(INFO.iconCave, x0 + 178, row1)
+    self:_glyph(INFO.letterA + group, x0 + 196, row1)
+    self:_glyph(INFO.sub1 + sub,      x0 + 208, row1)
+
+    -- Row 2: life pips (robot heads, ≤10) and key pips.
+    self:_pips(game.lives, HUD_MAX_LIVES, INFO.lifeFull, x0 + 4, row2)
+    self:_pips(game.keys, 4, INFO.keyFull, x0 + 188, row2)
+
+    gfx.setColor(gfx.kColorBlack)   -- reset
 end
