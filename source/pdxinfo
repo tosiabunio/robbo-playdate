@@ -1,7 +1,7 @@
 name=Robbo
 author=miasik.net
-description=A port of the 1993 DOS game Robbo (xland) to Playdate.
+description=One little robot. Sixty planets of pain.
 bundleID=net.miasik.robbo
-version=0.1
+version=0.9.1
 buildNumber=1
-imagePath=
+imagePath=images
