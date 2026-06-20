@@ -73,9 +73,10 @@ Playable across all **60 planets** of the full edition. Implemented:
 | Any button | Start the game (on the title screen) |
 | D-pad | Move Robbo — walk, push boxes, collect |
 | Ⓐ + D-pad | Fire in the held direction (costs ammo) |
-| Ⓑ | Self-destruct — restart the current planet |
 | Ⓐ | Return to the title (on the completion / game-over screen) |
-| System menu → *reset progress* | Clear the saved planet progress |
+| System menu → *Restart level* | Self-destruct — lose a life and replay the current planet |
+| System menu → *Reset progress* | Clear the saved planet progress |
+| System menu → *Debug skip* | Toggle planet-jumping; while on, **Ⓑ + d-pad** switches planets (◄ ► = ∓1, ▼ ▲ = ∓10) |
 
 Collect every screw to open the exit capsule, then walk into it to clear the planet.
 
