@@ -882,7 +882,7 @@ function Cave:robo(input)
 end
 
 -- epilog (PLAY.CPP:738). F10(STOP)/Tab(DONE) dev keys dropped; Esc(self-destruct)
--- maps to the B button (input.selfdestruct).
+-- is driven by the "Restart level" system-menu item (game.lua) via input.selfdestruct.
 function Cave:epilog(input)
     if input.selfdestruct and self.post_mortem == 0 then
         self.current = self.robo_pos

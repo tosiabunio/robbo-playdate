@@ -50,6 +50,8 @@ function Game:init()
     self.extraTaken = false          -- E_LIFE collected this cave (extra_taken)
 
     self.simFrame = 0                -- fixed-timestep divider counter
+    self.restartRequested = false    -- "Restart level" menu item -> self-destruct
+    self.debugSkip = false           -- "Debug skip" menu toggle (B + d-pad cave nav)
     self.state = STATE.TITLE
     self.titleSong = nil             -- chosen randomly on each title visit
     self.titleCredits = TitleCredits(self.renderer)   -- title + fly-in credits
@@ -58,13 +60,25 @@ function Game:init()
     self:setupMenu()
 end
 
--- System-menu (the Playdate menu button) extras. "Reset progress" clears the
--- saved planet so the next new game starts back on cave 1. Does not interrupt a
--- cave already in progress -- it only affects where the *next* run begins.
+-- System-menu (the Playdate menu button) extras.
 function Game:setupMenu()
     if not pd.getSystemMenu then return end           -- absent in headless runs
-    pd.getSystemMenu():addMenuItem("Reset progress", function()
+    local menu = pd.getSystemMenu()
+    -- "Reset progress" clears the saved planet so the next new game starts back on
+    -- cave 1. Does not interrupt a cave in progress -- only where the *next* run begins.
+    menu:addMenuItem("Reset progress", function()
         Save.reset()
+    end)
+    -- "Restart level" replaces the old B-button self-destruct (Esc): blow up Robbo,
+    -- lose a life, replay the cave (game over at 0 lives). Only meaningful mid-play;
+    -- the flag is consumed by updatePlay's next sim step.
+    menu:addMenuItem("Restart level", function()
+        if self.state == STATE.PLAY then self.restartRequested = true end
+    end)
+    -- "Debug skip" gates the B + d-pad cave navigation (debugSwitchCave). Off by
+    -- default so the d-pad never accidentally jumps caves during normal play.
+    menu:addCheckmarkMenuItem("Debug skip", self.debugSkip, function(on)
+        self.debugSkip = on
     end)
 end
 
@@ -143,6 +157,7 @@ function Game:resetRunState()
     self.renderer:setCaveGroup(self.caveNum)
     self.renderer:initScroll(self.cave.robo_pos)
     self.simFrame = 0
+    self.restartRequested = false    -- drop any pending menu restart on a fresh cave
     self.state = STATE.PLAY
 
     -- Wipe the title/credits art: the play renderer only repaints the centered
@@ -159,20 +174,41 @@ function Game:resetRunState()
     SOUND(self.screws > 0 and SFX.ZBIERZ_SRUBY or SFX.ODSZUKAJ)
 end
 
+-- Debug-only cave jump (menu "Debug skip" + B + d-pad). Clamps to [1, CAVES] and
+-- (re)starts that cave fresh, preserving lives. Does NOT mark caves finished, so the
+-- save's first-unfinished pointer is untouched -- a dev shortcut, not progression.
+function Game:debugSwitchCave(delta)
+    local target = math.max(1, math.min(CAVES, self.caveNum + delta))
+    if target ~= self.caveNum then self:startNewCave(target) end
+end
+
 function Game:updatePlay()
+    -- Debug level-skip (gated by the "Debug skip" menu toggle): hold B and tap the
+    -- d-pad to jump caves -- Left/Right = -/+1, Down/Up = -/+10. While navigating, the
+    -- d-pad is consumed for nav so Robbo doesn't also move.
+    local debugNav = self.debugSkip and pd.buttonIsPressed(pd.kButtonB)
+    if debugNav then
+        if     pd.buttonJustPressed(pd.kButtonRight) then return self:debugSwitchCave(1)
+        elseif pd.buttonJustPressed(pd.kButtonLeft)  then return self:debugSwitchCave(-1)
+        elseif pd.buttonJustPressed(pd.kButtonUp)    then return self:debugSwitchCave(10)
+        elseif pd.buttonJustPressed(pd.kButtonDown)  then return self:debugSwitchCave(-10)
+        end
+    end
+
     -- Fixed timestep: step the sim once every SIM_FRAME_DIV display frames so
     -- movement cadence is deterministic regardless of render fps.
     self.simFrame = self.simFrame + 1
     if self.simFrame >= SIM_FRAME_DIV then
         self.simFrame = 0
         local input = {
-            up    = pd.buttonIsPressed(pd.kButtonUp),
-            right = pd.buttonIsPressed(pd.kButtonRight),
-            down  = pd.buttonIsPressed(pd.kButtonDown),
-            left  = pd.buttonIsPressed(pd.kButtonLeft),
-            fire  = pd.buttonIsPressed(pd.kButtonA),         -- SpaceBar/Ins
-            selfdestruct = pd.buttonIsPressed(pd.kButtonB),  -- Esc
+            up    = not debugNav and pd.buttonIsPressed(pd.kButtonUp),
+            right = not debugNav and pd.buttonIsPressed(pd.kButtonRight),
+            down  = not debugNav and pd.buttonIsPressed(pd.kButtonDown),
+            left  = not debugNav and pd.buttonIsPressed(pd.kButtonLeft),
+            fire  = pd.buttonIsPressed(pd.kButtonA),          -- SpaceBar/Ins
+            selfdestruct = self.restartRequested,             -- "Restart level" menu item
         }
+        self.restartRequested = false
         self.cave:step(input)
         if self.cave.cont == 0 then
             self:endCave(self.cave.stop_cond)
