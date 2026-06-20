@@ -51,7 +51,7 @@ function Game:init()
 
     self.simFrame = 0                -- fixed-timestep divider counter
     self.restartRequested = false    -- "Restart level" menu item -> self-destruct
-    self.debugSkip = false           -- "Debug skip" menu toggle (B + d-pad cave nav)
+    self.crankAccum = 0              -- accumulated crank rotation for debug cave-skip
     self.state = STATE.TITLE
     self.titleSong = nil             -- chosen randomly on each title visit
     self.titleCredits = TitleCredits(self.renderer)   -- title + fly-in credits
@@ -74,11 +74,6 @@ function Game:setupMenu()
     -- the flag is consumed by updatePlay's next sim step.
     menu:addMenuItem("Restart level", function()
         if self.state == STATE.PLAY then self.restartRequested = true end
-    end)
-    -- "Debug skip" gates the B + d-pad cave navigation (debugSwitchCave). Off by
-    -- default so the d-pad never accidentally jumps caves during normal play.
-    menu:addCheckmarkMenuItem("Debug skip", self.debugSkip, function(on)
-        self.debugSkip = on
     end)
 end
 
@@ -174,24 +169,30 @@ function Game:resetRunState()
     SOUND(self.screws > 0 and SFX.ZBIERZ_SRUBY or SFX.ODSZUKAJ)
 end
 
--- Debug-only cave jump (menu "Debug skip" + B + d-pad). Clamps to [1, CAVES] and
--- (re)starts that cave fresh, preserving lives. Does NOT mark caves finished, so the
--- save's first-unfinished pointer is untouched -- a dev shortcut, not progression.
+-- Debug-only cave jump (crank). Clamps to [1, CAVES] and (re)starts that cave
+-- fresh, preserving lives. Does NOT mark caves finished, so the save's
+-- first-unfinished pointer is untouched -- a dev shortcut, not progression.
 function Game:debugSwitchCave(delta)
     local target = math.max(1, math.min(CAVES, self.caveNum + delta))
     if target ~= self.caveNum then self:startNewCave(target) end
 end
 
+-- One debug cave-skip per this many degrees of crank rotation (clockwise = +1,
+-- counter-clockwise = -1). The crank is otherwise unused in gameplay.
+local CRANK_STEP_DEG <const> = 30
+
 function Game:updatePlay()
-    -- Debug level-skip (gated by the "Debug skip" menu toggle): hold B and tap the
-    -- d-pad to jump caves -- Left/Right = -/+1, Down/Up = -/+10. While navigating, the
-    -- d-pad is consumed for nav so Robbo doesn't also move.
-    local debugNav = self.debugSkip and pd.buttonIsPressed(pd.kButtonB)
-    if debugNav then
-        if     pd.buttonJustPressed(pd.kButtonRight) then return self:debugSwitchCave(1)
-        elseif pd.buttonJustPressed(pd.kButtonLeft)  then return self:debugSwitchCave(-1)
-        elseif pd.buttonJustPressed(pd.kButtonUp)    then return self:debugSwitchCave(10)
-        elseif pd.buttonJustPressed(pd.kButtonDown)  then return self:debugSwitchCave(-10)
+    -- Debug level-skip via the crank (otherwise unused in gameplay): rotate to
+    -- jump caves, one per CRANK_STEP_DEG of rotation (clockwise = +1, ccw = -1).
+    -- getCrankChange is absent in headless runs, so guard on it.
+    if pd.getCrankChange and not (pd.isCrankDocked and pd.isCrankDocked()) then
+        self.crankAccum = self.crankAccum + pd.getCrankChange()
+        local step = 0
+        while self.crankAccum >=  CRANK_STEP_DEG do self.crankAccum = self.crankAccum - CRANK_STEP_DEG; step = step + 1 end
+        while self.crankAccum <= -CRANK_STEP_DEG do self.crankAccum = self.crankAccum + CRANK_STEP_DEG; step = step - 1 end
+        if step ~= 0 then
+            self:debugSwitchCave(step)
+            return
         end
     end
 
@@ -201,10 +202,10 @@ function Game:updatePlay()
     if self.simFrame >= SIM_FRAME_DIV then
         self.simFrame = 0
         local input = {
-            up    = not debugNav and pd.buttonIsPressed(pd.kButtonUp),
-            right = not debugNav and pd.buttonIsPressed(pd.kButtonRight),
-            down  = not debugNav and pd.buttonIsPressed(pd.kButtonDown),
-            left  = not debugNav and pd.buttonIsPressed(pd.kButtonLeft),
+            up    = pd.buttonIsPressed(pd.kButtonUp),
+            right = pd.buttonIsPressed(pd.kButtonRight),
+            down  = pd.buttonIsPressed(pd.kButtonDown),
+            left  = pd.buttonIsPressed(pd.kButtonLeft),
             fire  = pd.buttonIsPressed(pd.kButtonA),          -- SpaceBar/Ins
             selfdestruct = self.restartRequested,             -- "Restart level" menu item
         }
