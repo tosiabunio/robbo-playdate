@@ -38,7 +38,7 @@ function Renderer:init()
     self.robo_step = 0                    -- Robbo walk-cycle phase (PLAY.CPP robo_step)
     self.group = "a"                      -- cave group letter for WALL/BOX art
     self.tiles = gfx.imagetable.new("images/bank")   -- bank-table-16-16.png
-    self.info  = gfx.imagetable.new("images/info-table-16-19")  -- HUD glyphs (display_info)
+    self.info  = gfx.imagetable.new("images/info")   -- info-table-16-19.png -> info.pdt
 end
 
 -- Cave group letter for per-level themed WALL/BOX art (update_defs() in DOS):
@@ -264,6 +264,10 @@ function Renderer:drawStatus(game)
     gfx.fillRect(x0 + 86,  STATUS_Y + 4, 1, 22)
     gfx.fillRect(x0 + 172, STATUS_Y + 4, 1, 22)
 
+    -- Glyphs are a white mask on transparent; draw them as WHITE ink explicitly so
+    -- they read white-on-black regardless of the source image's stored polarity.
+    gfx.setImageDrawMode(gfx.kDrawModeFillWhite)
+
     -- Row 1: screws / ammo (category icon + 2 digits), cave (icon + group + sub).
     self:_glyph(INFO.iconScrews, x0 + 4, row1)
     self:_num2(game.screws, x0 + 22, row1)
@@ -280,5 +284,6 @@ function Renderer:drawStatus(game)
     self:_pips(game.lives, HUD_MAX_LIVES, INFO.lifeFull, x0 + 4, row2)
     self:_pips(game.keys, 4, INFO.keyFull, x0 + 188, row2)
 
-    gfx.setColor(gfx.kColorBlack)   -- reset
+    gfx.setImageDrawMode(gfx.kDrawModeCopy)   -- reset
+    gfx.setColor(gfx.kColorBlack)             -- reset
 end
