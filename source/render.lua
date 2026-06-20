@@ -216,7 +216,7 @@ end
 -- it's white 1-bit glyphs (info-table) on the black status panel, with subtle
 -- separators instead of the DOS bezel. Centred over the 256px playfield column
 -- (x PLAYFIELD_X..PLAYFIELD_X+PLAYFIELD_W) inside the wider 400px panel.
---   Row 1: [screw][NN]  |  [ammo][NN]  |  cave = group-letter + sub-number
+--   Row 1: [screw][NN]  |  [ammo][NN]  |  [cave][NN] ... group-letter+sub (right-aligned)
 --   Row 2: life pips (≤10, full/empty)        key pips (4, full/empty)
 local HUD_DIGIT_PITCH <const> = 10      -- monospace 7-seg readouts (glyphs are 8px)
 local HUD_PIP_PITCH   <const> = 16      -- life/key pips (icons are ~12-16px wide)
@@ -267,11 +267,19 @@ function Renderer:drawStatus(game)
     self:_glyph(INFO.iconAmmo, x0 + 90, row1)
     self:_num2(game.ammo, x0 + 108, row1)
 
+    -- Cave segment: icon + sequential planet number (01..60). The group-letter +
+    -- sub designation (A1..O4) is right-aligned to the HUD column's right edge.
     local group = (game.caveNum - 1) // 4        -- 0..14 -> A..O
     local sub   = (game.caveNum - 1) % 4         -- 0..3  -> sub 1..4
     self:_glyph(INFO.iconCave, x0 + 178, row1)
-    self:_glyph(INFO.letterA + group, x0 + 196, row1)
-    self:_glyph(INFO.sub1 + sub,      x0 + 208, row1)
+    self:_num2(game.caveNum, x0 + 196, row1)
+
+    local letW = INFO_GLYPH_W[INFO.letterA + group] or 7
+    local subW = INFO_GLYPH_W[INFO.sub1 + sub] or 6
+    local subX = x0 + PLAYFIELD_W - subW          -- sub digit flush to the HUD right edge
+    local letX = subX - 1 - letW                  -- group letter just left of it (1px gap)
+    self:_glyph(INFO.letterA + group, letX, row1)
+    self:_glyph(INFO.sub1 + sub,      subX, row1)
 
     -- Row 2: life pips (robot heads, ≤10) and key pips.
     self:_pips(game.lives, HUD_MAX_LIVES, INFO.lifeFull, x0 + 4, row2)
