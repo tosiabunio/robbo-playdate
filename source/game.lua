@@ -177,13 +177,13 @@ function Game:debugSwitchCave(delta)
     if target ~= self.caveNum then self:startNewCave(target) end
 end
 
--- One debug cave-skip per this many degrees of crank rotation (clockwise = +1,
+-- One debug cave-skip per full crank revolution (360 deg; clockwise = +1,
 -- counter-clockwise = -1). The crank is otherwise unused in gameplay.
-local CRANK_STEP_DEG <const> = 30
+local CRANK_STEP_DEG <const> = 360
 
 function Game:updatePlay()
     -- Debug level-skip via the crank (otherwise unused in gameplay): rotate to
-    -- jump caves, one per CRANK_STEP_DEG of rotation (clockwise = +1, ccw = -1).
+    -- jump caves, one per full revolution (CRANK_STEP_DEG, clockwise = +1, ccw = -1).
     -- getCrankChange is absent in headless runs, so guard on it.
     if pd.getCrankChange and not (pd.isCrankDocked and pd.isCrankDocked()) then
         self.crankAccum = self.crankAccum + pd.getCrankChange()
