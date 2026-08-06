@@ -190,7 +190,13 @@ end
 function TitleCredits:draw()
     gfx.setColor(gfx.kColorBlack)
     gfx.fillRect(0, 0, SCREEN_W, SCREEN_H)
-    if self.titleImg then self.titleImg:draw(8, 0) end   -- 384-wide art, centred
+    if self.titleImg then
+        -- Centre on whatever the art actually measures (384x240 from
+        -- build_title_assets.py => 8,0) rather than assuming that size, so a
+        -- regenerated asset of a different size still lands centred.
+        local w, h = self.titleImg:getSize()
+        self.titleImg:draw((SCREEN_W - w) // 2, (SCREEN_H - h) // 2)
+    end
 
     for _, lt in ipairs(self.letters) do
         if lt.sprite > 1 then

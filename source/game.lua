@@ -253,7 +253,12 @@ function Game:updateEndScreen(image, headline)
     end
     gfx.setColor(gfx.kColorBlack)
     gfx.fillRect(0, 0, SCREEN_W, SCREEN_H)
-    if self.endImg[image] then self.endImg[image]:draw(8, 0) end
+    local art = self.endImg[image]
+    if art then
+        -- Centre on the art's real size (384x240 => 8,0) instead of assuming it.
+        local w, h = art:getSize()
+        art:draw((SCREEN_W - w) // 2, (SCREEN_H - h) // 2)
+    end
     if headline and headline ~= "" then
         gfx.setImageDrawMode(gfx.kDrawModeFillWhite)
         gfx.drawTextAligned(headline, SCREEN_W // 2, SCREEN_H // 2 + 30,
