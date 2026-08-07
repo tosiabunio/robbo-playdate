@@ -13,8 +13,12 @@ open the exit capsule, then step into it to clear the planet.
 
 ## Download
 
-Build the `.pdx` yourself (see [Building](#building)) and sideload it to your
-Playdate, or run it in the Playdate Simulator.
+The game is **available to download on itch.io** — grab the `.pdx` and sideload it
+to your Playdate:
+
+* **[Robbo for Playdate on itch.io](https://tosiabunio.itch.io/robbo-for-playdate)**
+
+(Or [build it yourself](#building) and run it in the Playdate Simulator.)
 
 ## About Robbo
 
