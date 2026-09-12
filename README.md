@@ -80,7 +80,7 @@ Playable across all **60 planets** of the full edition. Implemented:
 | Ⓐ | Return to the title (on the completion / game-over screen) |
 | System menu → *Restart level* | Self-destruct — lose a life and replay the current planet |
 | System menu → *Reset progress* | Clear the saved planet progress |
-| System menu → *Debug skip* | Toggle planet-jumping; while on, **Ⓑ + d-pad** switches planets (◄ ► = ∓1, ▼ ▲ = ∓10) |
+| Crank | Planet skip (a dev shortcut, not progression): one planet per full turn, clockwise forward, counter-clockwise back. Does not mark planets finished. |
 
 Collect every screw to open the exit capsule, then walk into it to clear the planet.
 

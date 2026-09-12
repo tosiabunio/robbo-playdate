@@ -27,6 +27,13 @@ local OFF_X       <const> = SCREEN_W + 16
 local OFF_Y       <const> = SCREEN_H + 16
 local HOLD_FRAMES <const> = 75                   -- ~2.5s @30fps hold per credit
 
+-- The wordmark isn't permanent: it holds through the first LOGO_PAIRS credits,
+-- then lifts away with them so the rest of the roll plays over the bare art.
+-- Gravity-style easing (v grows by LOGO_ACCEL each frame from a standstill)
+-- gives the slow start that reads as a float rather than a snap.
+local LOGO_PAIRS  <const> = 3                    -- credits shown before it leaves
+local LOGO_ACCEL  <const> = 0.6                  -- px/frame^2 of upward lift
+
 -- 8 credit pairs (ENGLISH.TXT !title!..!title_end!). Lowercase: the glyph bank
 -- maps a-z (char_to_sprite lowercases; the credits text is lowercase).
 local CREDITS <const> = {
@@ -93,6 +100,16 @@ function TitleCredits:init(renderer)
     -- not the 16x16 game bank -- the glyphs are authored at the full 24x24 cell.
     self.glyphs = gfx.imagetable.new("images/letters")
     self.titleImg = gfx.image.new("images/title")   -- converted TITLE.BMP scene
+    self.logoImg = gfx.image.new("images/logo_large")  -- handcrafted ROBBO wordmark
+    if self.logoImg then
+        -- Centred horizontally, its middle on the screen's upper third
+        -- (SCREEN_H/3), which leaves the whole band below REST_Y0 free for the
+        -- credits. Measured, so re-cut art of any size stays placed.
+        local w, h = self.logoImg:getSize()
+        self.logoH    = h
+        self.logoX    = (SCREEN_W - w) // 2
+        self.logoRest = SCREEN_H // 3 - h // 2
+    end
     self:reset()
 end
 
@@ -102,6 +119,9 @@ function TitleCredits:reset()
     self.holdTimer = 0
     self.finalScreen = false
     self.letters = {}
+    self.logoY = self.logoRest
+    self.logoVy = nil                -- non-nil once the lift has been triggered
+    self.logoGone = false
     self:startPair()
 end
 
@@ -116,8 +136,18 @@ function TitleCredits:startPair()
     self.holdTimer = 0
 end
 
+-- Float the wordmark off the top once triggered. Independent of the credit
+-- phases, so it keeps rising while the next pair flies in underneath it.
+function TitleCredits:updateLogo()
+    if self.logoGone or not self.logoVy then return end
+    self.logoVy = self.logoVy - LOGO_ACCEL
+    self.logoY = self.logoY + self.logoVy
+    if self.logoY + self.logoH <= 0 then self.logoGone = true end
+end
+
 -- Advance one animation frame. Call :draw() afterward.
 function TitleCredits:update()
+    self:updateLogo()
     if self.phase == "final" then return end
 
     if self.phase == "settle" then
@@ -147,6 +177,11 @@ function TitleCredits:update()
                 self.phase = "final"
             else
                 seedForFlyOut(self.letters)
+                -- Leave alongside the last credit it shared the screen with,
+                -- rather than after it, so the screen is never briefly bare.
+                if self.pairIdx >= LOGO_PAIRS and not self.logoVy then
+                    self.logoVy = 0
+                end
                 self.phase = "flyout"
             end
         end
@@ -196,6 +231,10 @@ function TitleCredits:draw()
         -- regenerated asset of a different size still lands centred.
         local w, h = self.titleImg:getSize()
         self.titleImg:draw((SCREEN_W - w) // 2, (SCREEN_H - h) // 2)
+    end
+
+    if self.logoImg and not self.logoGone then
+        self.logoImg:draw(self.logoX, math.floor(self.logoY))
     end
 
     for _, lt in ipairs(self.letters) do
