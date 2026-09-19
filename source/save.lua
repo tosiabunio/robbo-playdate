@@ -13,10 +13,24 @@ local SAVE_FILE <const> = "robbo"   -- -> Data/<bundleid>/robbo.json on device
 
 Save = {}
 
+-- Read-modify-write so independent fields (progress, settings) don't clobber
+-- each other in the shared save blob.
+local function load()
+    local data = datastore.read(SAVE_FILE)
+    if type(data) ~= "table" then data = {} end
+    return data
+end
+
+local function store(key, value)
+    local data = load()
+    data[key] = value
+    datastore.write(data, SAVE_FILE)
+end
+
 -- Last finished cave/planet number (0 == nothing finished yet / no save).
 function Save.lastFinished()
-    local data = datastore.read(SAVE_FILE)
-    if data and type(data.lastFinished) == "number" then
+    local data = load()
+    if type(data.lastFinished) == "number" then
         -- Clamp defensively against a corrupt/edited save.
         return math.max(0, math.min(CAVES, math.floor(data.lastFinished)))
     end
@@ -35,11 +49,20 @@ end
 -- never lowers the saved high-water mark.
 function Save.markFinished(caveNum)
     if caveNum > Save.lastFinished() then
-        datastore.write({ lastFinished = caveNum }, SAVE_FILE)
+        store("lastFinished", caveNum)
     end
 end
 
 -- Wipe progress (the "Reset progress" system-menu item).
 function Save.reset()
-    datastore.write({ lastFinished = 0 }, SAVE_FILE)
+    store("lastFinished", 0)
+end
+
+-- "Invert display" system-menu setting (persisted across launches).
+function Save.inverted()
+    return load().inverted == true
+end
+
+function Save.setInverted(on)
+    store("inverted", on == true)
 end

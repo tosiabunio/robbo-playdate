@@ -64,6 +64,13 @@ end
 function Game:setupMenu()
     if not pd.getSystemMenu then return end           -- absent in headless runs
     local menu = pd.getSystemMenu()
+    -- "Invert" flips the whole display (white-on-black), persisted in the save.
+    local inverted = Save.inverted()
+    pd.display.setInverted(inverted)
+    menu:addCheckmarkMenuItem("Invert", inverted, function(on)
+        pd.display.setInverted(on)
+        Save.setInverted(on)
+    end)
     -- "Reset progress" clears the saved planet so the next new game starts back on
     -- cave 1. Does not interrupt a cave in progress -- only where the *next* run begins.
     menu:addMenuItem("Reset progress", function()
